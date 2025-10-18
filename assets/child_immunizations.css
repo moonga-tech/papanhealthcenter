@@ -1,0 +1,207 @@
+/* ===== General Page Layout ===== */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+}
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #222;
+}
+
+button, a {
+    border: none;
+    color: #fff;
+    padding: 8px 15px;
+    margin: 2px;
+    border-radius: 5px;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: 0.3s;
+}
+
+/* ✅ Add Immunization Button (Green) */
+.btn-add {
+    background: #27ae60;
+}
+.btn-add:hover {
+    background: #219150;
+}
+
+/* 📝 Edit Button (Blue) */
+.btn-edit {
+    background: #3498db;
+}
+.btn-edit:hover {
+    background: #2c80b4;
+}
+
+/* ❌ Delete Button (Red) */
+.btn-delete {
+    background: #e74c3c;
+}
+.btn-delete:hover {
+    background: #c0392b;
+}
+
+/* ===== Table Styling ===== */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+thead {
+    background: #3498db;
+    color: #fff;
+}
+
+thead th {
+    padding: 12px;
+    font-size: 14px;
+    text-align: center;
+}
+
+tbody td {
+    padding: 10px;
+    text-align: center;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+}
+
+tbody tr:nth-child(even) {
+    background: #f9f9f9;
+}
+
+/* ===== Modal Styling ===== */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.5);
+    overflow-y: auto;
+    padding: 40px 0;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 25px;
+    margin: auto;
+    width: 95%;
+    max-width: 600px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.close {
+    float: right;
+    font-size: 20px;
+    color: #888;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+/* ===== Form Styling ===== */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+label {
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 4px;
+    text-align: left;
+}
+
+input[type="text"], 
+input[type="number"], 
+input[type="date"], 
+select, 
+textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: border 0.3s;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 4px rgba(52,152,219,0.4);
+}
+
+textarea {
+    min-height: 60px;
+    resize: vertical;
+}
+
+/* ✅ Save / Update buttons */
+form button {
+    width: 100%;
+    padding: 10px;
+    background: #27ae60;
+    border-radius: 6px;
+    font-size: 15px;
+}
+form button:hover {
+    background: #219150;
+}
+
+/* ===== Responsive Adjustments ===== */
+@media (max-width: 600px) {
+    .modal-content {
+        width: 90%;
+        max-width: 100%;
+    }
+
+    table {
+        font-size: 12px;
+    }
+
+    thead th, tbody td {
+        padding: 8px;
+    }
+}
+/* 🔙 Back Button (Gray) */
+.btn-back {
+    display: inline-block;
+    background: #7f8c8d;
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    margin-bottom: 15px;
+    font-size: 14px;
+    transition: 0.3s;
+}
+/* 🖨️ Print Button (Grayish Blue) */
+.btn-print {
+    background: #6c5ce7;
+    color: #fff;
+}
+.btn-print:hover {
+    background: #574b90;
+}
