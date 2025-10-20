@@ -97,7 +97,10 @@ $result = $conn->query($sql);
         <a href="archived_medicines.php" class="btn btn-edit">View Archived Medicines</a>
         <a href="medicine_given.php" class="btn btn-given">📋 Given Medicines</a>
         <a href="view_stock_requests.php" class="btn btn-request">📦 View Requests</a>
+        <a href="expired_medicines.php" class="btn btn-edit">Expired Medicines</a>
+        <a href="medicine_inventory.php" class="btn btn-edit">Medicine Inventory</a>
         <button class="btn btn-add" onclick="openAddModal()">+ Add Medicine</button>
+        <button class="btn btn-edit" onclick="window.print()">Print All</button>
         <button class="btn" style="background: #dc3545; color: white;" onclick="filterLowStock()">⚠️ Show Low Stock
             Only</button>
         <button class="btn" style="background: #fd7e14; color: white;" onclick="filterExpiring()">🚨 Show Expiring
