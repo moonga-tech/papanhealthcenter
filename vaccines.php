@@ -45,11 +45,93 @@ function days_left($expiry_date)
     <meta charset="UTF-8">
     <title>Vaccine Records</title>
     <link rel="stylesheet" href="assets/common_styles.css">
+    <style>
+        /* Print Styles */
+        @media print {
+            body { background: none; }
+            .container { box-shadow: none; padding: 0; }
+            .btn, .modal, .controls, .alert { display: none !important; }
+            
+            /* Show print header and footer */
+            .print-header, .print-footer { display: block !important; }
+            
+            /* Table styles for print */
+            table { 
+                width: 100% !important;
+                border-collapse: collapse;
+                table-layout: fixed;
+                margin-top: 20px;
+                font-size: 10pt;
+            }
+            th, td { 
+                border: 1px solid #000;
+                padding: 8px;
+                font-size: 9pt;
+                word-wrap: break-word;
+            }
+            th { 
+                background-color: #f0f0f0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            /* Hide action column */
+            th:last-child, td:last-child { display: none; }
+            
+            /* Badge colors in print */
+            .badge {
+                border: 1px solid #000;
+                padding: 2px 6px;
+                font-size: 8pt;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            .badge-expired { background: #ffcccc !important; color: #000 !important; }
+            .badge-soon { background: #fff3cd !important; color: #000 !important; }
+            .badge-ok { background: #d4edda !important; color: #000 !important; }
+            
+            /* Page breaks */
+            tr { page-break-inside: avoid; }
+            thead { display: table-header-group; }
+            
+            /* Adjust column widths for print */
+            th:nth-child(1), td:nth-child(1) { width: 5%; }
+            th:nth-child(2), td:nth-child(2) { width: 15%; }
+            th:nth-child(3), td:nth-child(3) { width: 20%; }
+            th:nth-child(4), td:nth-child(4) { width: 10%; }
+            th:nth-child(5), td:nth-child(5) { width: 7%; }
+            th:nth-child(6), td:nth-child(6) { width: 8%; }
+            th:nth-child(7), td:nth-child(7) { width: 12%; }
+            th:nth-child(8), td:nth-child(8) { width: 8%; }
+            th:nth-child(9), td:nth-child(9) { width: 8%; }
+            th:nth-child(10), td:nth-child(10) { width: 7%; }
+        }
+        
+        .print-header, .print-footer {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .print-header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 18pt;
+        }
+        .print-header p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 10pt;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="container">
+    <div class="print-header">
+        <h1>Vaccine Inventory Report</h1>
+        <p>Generated on <?= date('F d, Y h:i A') ?></p>
+        <p>Papan Health Center</p>
+    </div>
 
+    <div class="container">
         <h2>Vaccine Records</h2>
 
         <div style="margin-bottom: 15px;">
@@ -333,7 +415,53 @@ function days_left($expiry_date)
         }
 
         function printAll() {
+            // Add page numbers
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @media print {
+                    .print-footer {
+                        position: fixed;
+                        bottom: 0;
+                        width: 100%;
+                        text-align: center;
+                        font-size: 9pt;
+                        color: #666;
+                    }
+                    .print-footer::after {
+                        content: "Page " counter(page) " of " counter(pages);
+                    }
+                    @page {
+                        margin: 15mm 10mm 15mm 10mm;
+                        counter-increment: page;
+                        counter-reset: pages;
+                        @bottom-center {
+                            content: counter(page) " of " counter(pages);
+                        }
+                    }
+                    /* Ensure table header repeats on each page */
+                    thead {
+                        display: table-header-group;
+                    }
+                    tfoot {
+                        display: table-footer-group;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // Create footer
+            const footer = document.createElement('div');
+            footer.className = 'print-footer';
+            footer.innerHTML = `<p>Papan Health Center - Vaccine Inventory Report</p>`;
+            document.body.appendChild(footer);
+            
             window.print();
+            
+            // Cleanup
+            setTimeout(() => {
+                document.head.removeChild(style);
+                document.body.removeChild(footer);
+            }, 1000);
         }
     </script>
 </body>

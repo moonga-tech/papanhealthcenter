@@ -167,7 +167,9 @@ if (!isset($_SESSION['user_id'])) {
         <div class="title">Papan Health Center Management System</div>
         <div class="top-links">
             <a href="user_settings.php">User Settings</a>
-            <a href="signup.php">Add Member</a>
+            <?php if ($_SESSION['role'] === 'admin'): ?>
+                <a href="signup.php">Add Member</a>
+            <?php endif; ?>
             <a href="#" onclick="confirmLogout()">Logout</a>
         </div>
     </header>
@@ -177,10 +179,10 @@ if (!isset($_SESSION['user_id'])) {
             <h3>Management</h3>
             <a href="patients.php">Patients</a>
             <a href="medical_records.php">Medical Records</a>
-
-            <?php if ($_SESSION['role'] === 'admin'): ?>
             <a href="medicine.php">Medicines</a>
             <a href="vaccines.php">Vaccines</a>
+            
+            <?php if ($_SESSION['role'] === 'admin'): ?>
             <a href="prenatal_records.php">Pre Natal</a>
 
             <div>

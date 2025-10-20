@@ -57,10 +57,55 @@ $result = $conn->query($sql);
         .box {
             border: 1px solid black;
         }
+
+        /* Print Styles */
+        @media print {
+            .btn, .modal, .container.box { 
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .btn, .modal, form, .alert-section { 
+                display: none !important; 
+            }
+            table { 
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }
+            th, td { 
+                border: 1px solid #000;
+                padding: 8px;
+                text-align: left;
+            }
+            th { 
+                background-color: #f0f0f0 !important;
+                -webkit-print-color-adjust: exact;
+            }
+            tr { page-break-inside: avoid; }
+            .print-header {
+                display: block !important;
+                text-align: center;
+                margin-bottom: 20px;
+            }
+            .print-footer {
+                display: block !important;
+                text-align: center;
+                margin-top: 20px;
+                font-size: 12px;
+            }
+        }
+        .print-header, .print-footer {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
+    <div class="print-header">
+        <h1>Medicine Inventory Report</h1>
+        <p>Generated on <?= date('F d, Y h:i A') ?></p>
+    </div>
+
     <div class="container box">
         <h2>Medicine Management</h2>
 
@@ -100,7 +145,7 @@ $result = $conn->query($sql);
         <a href="expired_medicines.php" class="btn btn-edit">Expired Medicines</a>
         <a href="medicine_inventory.php" class="btn btn-edit">Medicine Inventory</a>
         <button class="btn btn-add" onclick="openAddModal()">+ Add Medicine</button>
-        <button class="btn btn-edit" onclick="window.print()">Print All</button>
+        <button class="btn btn-edit" onclick="printMedicineList()">Print All</button>
         <button class="btn" style="background: #dc3545; color: white;" onclick="filterLowStock()">⚠️ Show Low Stock
             Only</button>
         <button class="btn" style="background: #fd7e14; color: white;" onclick="filterExpiring()">🚨 Show Expiring
@@ -213,7 +258,43 @@ $result = $conn->query($sql);
         </div>
     </div>
 
+    <div class="print-footer">
+        <p>Papan Health Center Medicine Inventory - Page {N}</p>
+    </div>
+
     <script>
+        function printMedicineList() {
+            // Add page numbers
+            const style = document.createElement('style');
+            style.innerHTML = `
+                @media print {
+                    .print-footer { 
+                        position: fixed;
+                        bottom: 0;
+                        width: 100%;
+                        text-align: center;
+                    }
+                    .print-footer::after {
+                        counter-increment: page;
+                        content: counter(page);
+                    }
+                    @page { 
+                        margin: 20mm;
+                        counter-increment: page;
+                        @bottom-right {
+                            content: counter(page);
+                        }
+                    }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            window.print();
+            
+            // Clean up
+            setTimeout(() => document.head.removeChild(style), 1000);
+        }
+
         function openAddModal() {
             document.getElementById('addModal').style.display = 'block';
         }
