@@ -17,6 +17,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $stmt->bind_param("iiisssss", $child_id, $vaccine_id, $dose_number, $date_given, $lot_number, $vaccinator, $place_given, $remarks);
 
     if ($stmt->execute()) {
+        // decrement vaccine stock by 1 (one dose given)
+        $dec = $conn->prepare("UPDATE vaccines SET quantity = GREATEST(0, quantity - 1) WHERE vaccine_id = ?");
+        $dec->bind_param("i", $vaccine_id);
+        $dec->execute();
+        $dec->close();
+
         header("Location: child_immunizations.php?success=1");
     } else {
         echo "Error: " . $stmt->error;

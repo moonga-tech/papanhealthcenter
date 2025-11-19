@@ -16,6 +16,40 @@ $result = $conn->query($sql);
   <meta charset="UTF-8">
   <title>Children Records</title>
   <link rel="stylesheet" href="assets/common_styles.css">
+  <style>
+    @media print {
+      body { background: none; }
+      .container { box-shadow: none; padding: 0; }
+      .btn, .modal { display: none !important; }
+      h2 { text-align: center; margin-bottom: 20px; }
+      
+      table { 
+        width: 100% !important;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 10pt;
+      }
+      th, td { 
+        border: 1px solid #000;
+        padding: 6px;
+        font-size: 9pt;
+        text-align: left;
+      }
+      th { 
+        background-color: #f0f0f0 !important;
+        font-weight: bold;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      /* Hide action column */
+      th:last-child, td:last-child { display: none; }
+      
+      /* Page breaks */
+      tr { page-break-inside: avoid; }
+      thead { display: table-header-group; }
+    }
+  </style>
 </head>
 <body>
 <div class="container">

@@ -1,9 +1,9 @@
 <?php
-
+session_start();
 include 'db_connect.php';
 
 // Fetch all vaccine records with supplier
-$sql = 'SELECT v.vaccine_id, v.vaccine_name, v.description, v.quantity, v.total_doses, v.recommended_ages, v.expiry_date, v.date_received, v.lot_number, s.supplier_name FROM vaccines v JOIN vaccine_suppliers s ON v.supplier_id = s.supplier_id WHERE v.archived = 0 ORDER BY v.date_received DESC';
+$sql = 'SELECT v.vaccine_id, v.vaccine_name, v.description, v.quantity, v.total_doses, v.recommended_ages, v.expiry_date, v.date_received, v.lot_number, s.supplier_name, COALESCE(v.unit, "pieces") as unit FROM vaccines v JOIN vaccine_suppliers s ON v.supplier_id = s.supplier_id WHERE v.archived = 0 ORDER BY v.date_received DESC';
 
 $result = $conn->query($sql);
 
@@ -114,21 +114,62 @@ function days_left($expiry_date)
         .print-header h1 {
             margin: 0;
             color: #333;
+            font-size: 24pt;
+            text-align: center;
+            font-weight: bold;
+        }
+        .print-header h2 {
+            margin: 10px 0;
+            color: #333;
             font-size: 18pt;
+            text-align: center;
         }
         .print-header p {
             margin: 5px 0;
             color: #666;
             font-size: 10pt;
         }
+        .print-summary {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .print-summary p {
+            margin: 5px 0;
+            font-size: 11pt;
+            color: #333;
+        }
     </style>
 </head>
 
 <body>
     <div class="print-header">
-        <h1>Vaccine Inventory Report</h1>
+        <h1>PAPAN HEALTH CENTER</h1>
+        <h2>Vaccine Inventory Report</h2>
         <p>Generated on <?= date('F d, Y h:i A') ?></p>
-        <p>Papan Health Center</p>
+        <div class="print-summary">
+            <?php
+            // total vaccine types (rows)
+            $totalTypes = $result->num_rows;
+            // total stock across all vaccines
+            $totalStockRes = $conn->query("SELECT IFNULL(SUM(quantity),0) as total FROM vaccines WHERE archived = 0");
+            $totalStock = $totalStockRes ? $totalStockRes->fetch_assoc()['total'] : 0;
+            // total given doses (count of immunization records)
+            $totalGivenRes = $conn->query("SELECT COUNT(*) as total FROM child_immunizations");
+            $totalGiven = $totalGivenRes ? $totalGivenRes->fetch_assoc()['total'] : 0;
+            // total left (stock - given)
+            $totalLeft = max(0, intval($totalStock) - intval($totalGiven));
+            // count expired vaccine types
+            $expiredRes = $conn->query("SELECT COUNT(*) as total FROM vaccines WHERE expiry_date < CURDATE() AND archived = 0");
+            $expiredTypes = $expiredRes ? $expiredRes->fetch_assoc()['total'] : 0;
+            ?>
+            <p><strong>Vaccine Types:</strong> <?= $totalTypes ?></p>
+            <p><strong>Total Stock (in units):</strong> <?= $totalStock ?></p>
+            <p><strong>Given Vaccines (doses):</strong> <?= $totalGiven ?></p>
+            <p><strong>Total Left (stock - given):</strong> <?= $totalLeft ?></p>
+            <p><strong>Expired Vaccine Types:</strong> <?= $expiredTypes ?></p>
+        </div>
     </div>
 
     <div class="container">
@@ -200,7 +241,7 @@ function days_left($expiry_date)
                 <option value="qty_desc">Quantity ↓</option>
             </select>
 
-            <button class="btn-request" id="clearFilters" style="">Clear</button>
+            <button class="btn-request" id="clearFilters">Clear</button>
         </div>
 
 
@@ -212,30 +253,49 @@ function days_left($expiry_date)
                     <th style="width: 12%;">Vaccine Name</th>
                     <th style="width: 15%;">Description</th>
                     <th style="width: 10%;">Supplier</th>
-                    <th style="width: 6%;">Quantity</th>
+                    <th style="width: 8%;">Stock In</th>
+                    <th style="width: 8%;">Given</th>
+                    <th style="width: 8%;">Left</th>
+                    <th style="width: 8%;">Expiry Date</th>
+                    <th style="width: 8%;">Lot Number</th>
                     <th style="width: 8%;">Total Doses</th>
                     <th style="width: 10%;">Recommended Ages</th>
-                    <th style="width: 8%;">Expiry Date</th>
                     <th style="width: 8%;">Status</th>
                     <th style="width: 8%;">Date Received</th>
-                    <th style="width: 8%;">Lot Number</th>
                     <th style="width: 12%;">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php while($row=$result->fetch_assoc()): ?>
-                <?php $days = days_left($row['expiry_date']); ?>
-                <?php $low = intval($row['quantity']) < 5; ?>
+                <?php 
+                $days = days_left($row['expiry_date']); 
+                $low = intval($row['quantity']) < 5;
+                
+                // Calculate given vaccines for this vaccine
+                // count immunization records for this vaccine (each record equals one dose given)
+                $givenVaccinesSql = "SELECT COUNT(*) as count FROM child_immunizations WHERE vaccine_id = {$row['vaccine_id']} AND archived = 0";
+                $givenVaccinesResult = $conn->query($givenVaccinesSql);
+                $givenVaccines = $givenVaccinesResult->fetch_assoc()['count'];
+                
+                // Check if expired
+                $isExpired = $days !== null && $days < 0 ? 1 : 0;
+                
+                // Vaccines left (quantity - given)
+                $vaccinesLeft = max(0, intval($row['quantity']) - $givenVaccines);
+                ?>
                 <tr class="<?= $low ? 'low-stock' : '' ?>" data-expiry-days="<?= $days === null ? '' : $days ?>"
-                    data-quantity="<?= intval($row['quantity']) ?>" data-expiry-date="<?= $row['expiry_date'] ?>">
+                    data-quantity="<?= intval($row['quantity']) ?>" data-given="<?= intval($givenVaccines) ?>" data-left="<?= intval($vaccinesLeft) ?>" data-expiry-date="<?= $row['expiry_date'] ?>">
                     <td><?= $row['vaccine_id'] ?></td>
                     <td><?= htmlspecialchars($row['vaccine_name']) ?></td>
                     <td><?= htmlspecialchars($row['description']) ?></td>
                     <td><?= htmlspecialchars($row['supplier_name']) ?></td>
-                    <td><?= $row['quantity'] ?></td>
+                    <td><?= intval($row['quantity']) . ' ' . htmlspecialchars($row['unit']) ?></td>
+                    <td><?= intval($givenVaccines) ?></td>
+                    <td><?= intval($vaccinesLeft) ?></td>
+                    <td><?= $row['expiry_date'] ?></td>
+                    <td><?= htmlspecialchars($row['lot_number']) ?></td>
                     <td><?= $row['total_doses'] ?></td>
                     <td><?= htmlspecialchars($row['recommended_ages']) ?></td>
-                    <td><?= $row['expiry_date'] ?></td>
                     <td>
                         <?php if ($days === null): ?>
                         <span class="badge badge-ok">No date</span>
@@ -248,7 +308,6 @@ function days_left($expiry_date)
                         <?php endif; ?>
                     </td>
                     <td><?= $row['date_received'] ?></td>
-                    <td><?= htmlspecialchars($row['lot_number']) ?></td>
                     <td>
                         <button class="btn btn-edit" onclick="openEditModal(<?= $row['vaccine_id'] ?>)">Edit</button>
                         <a href="archive_vaccine.php?id=<?= $row['vaccine_id'] ?>" class="btn btn-archive"
@@ -286,6 +345,16 @@ function days_left($expiry_date)
                 </select>
                 <label>Quantity:</label>
                 <input type="number" name="quantity" required>
+                <label>Unit of Measurement:</label>
+                <select name="unit" required>
+                    <option value="pieces">Pieces</option>
+                    <option value="boxes">Boxes</option>
+                    <option value="bottles">Bottles</option>
+                    <option value="milligram">Milligram (mg)</option>
+                    <option value="gram">Gram (g)</option>
+                    <option value="milliliter">Milliliter (ml)</option>
+                    <option value="litre">Litre (L)</option>
+                </select>
                 <label>Total Doses:</label>
                 <input type="number" name="total_doses" required>
                 <label>Recommended Ages:</label>
@@ -376,11 +445,12 @@ function days_left($expiry_date)
             rows.forEach(r => {
                 const daysAttr = r.getAttribute('data-expiry-days');
                 const qty = parseInt(r.getAttribute('data-quantity') || '0', 10);
+                const leftQty = parseInt(r.getAttribute('data-left') || '0', 10);
                 const days = daysAttr === '' ? null : parseInt(daysAttr, 10);
                 let show = true;
                 if (filter === 'expired') show = (days !== null && days < 0);
                 if (filter === 'expiring_3') show = (days !== null && days >= 0 && days <= 3);
-                if (filter === 'low_stock') show = (qty < 5);
+                if (filter === 'low_stock') show = (leftQty < 5);
                 r.style.display = show ? '' : 'none';
             });
 
@@ -447,12 +517,20 @@ function days_left($expiry_date)
                     }
                 }
             `;
+            
             document.head.appendChild(style);
             
-            // Create footer
+            // Create footer with administrator info
             const footer = document.createElement('div');
             footer.className = 'print-footer';
-            footer.innerHTML = `<p>Papan Health Center - Vaccine Inventory Report</p>`;
+            footer.innerHTML = `
+                <p>Papan Health Center - Vaccine Inventory Report</p>
+                <div class="admin-info">
+                    <p><strong>Administered by:</strong> <?php echo isset($_SESSION['full_name']) ? htmlspecialchars($_SESSION['full_name']) : '_____________________'; ?></p>
+                    <p><strong>Position:</strong> <?php echo isset($_SESSION['role']) ? htmlspecialchars(ucfirst($_SESSION['role'])) : '_____________________'; ?></p>
+                    <p><strong>Date:</strong> <?php echo date('F d, Y'); ?></p>
+                </div>
+            `;
             document.body.appendChild(footer);
             
             window.print();

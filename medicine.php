@@ -1,7 +1,8 @@
 <?php
+session_start();
 include 'db_connect.php';
 
-$sql = 'SELECT * FROM medicines WHERE archived = 0 ORDER BY date_added DESC';
+$sql = 'SELECT *, COALESCE(unit, "pieces") as unit FROM medicines WHERE archived = 0 ORDER BY date_added DESC';
 $result = $conn->query($sql);
 ?>
 <!DOCTYPE html>
@@ -60,50 +61,139 @@ $result = $conn->query($sql);
 
         /* Print Styles */
         @media print {
-            .btn, .modal, .container.box { 
+            body { background: none; }
+            .container { 
+                box-shadow: none !important; 
+                padding: 0 !important;
                 border: none !important;
-                box-shadow: none !important;
+                display: block !important;
             }
-            .btn, .modal, form, .alert-section { 
-                display: none !important; 
+            .btn, .modal, .controls, .alert { 
+                display: none !important;
             }
+            h2 { display: none !important; }
+            
+            /* Show print header and footer */
+            .print-header, .print-footer { display: block !important; }
+            
+            /* Table styles for print */
             table { 
-                width: 100%;
+                width: 100% !important;
                 border-collapse: collapse;
+                table-layout: fixed;
                 margin-top: 20px;
+                font-size: 10pt;
             }
             th, td { 
                 border: 1px solid #000;
                 padding: 8px;
-                text-align: left;
+                font-size: 9pt;
+                word-wrap: break-word;
             }
             th { 
                 background-color: #f0f0f0 !important;
                 -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
+            
+            /* Hide action column */
+            th:last-child, td:last-child { display: none; }
+            
+            /* Status colors in print */
+            td[style*="color: red"] {
+                background: #ffcccc !important;
+                color: #000 !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            td[style*="background: #dc3545"] {
+                background: #fff3cd !important;
+                color: #000 !important;
+                print-color-adjust: exact;
+                -webkit-print-color-adjust: exact;
+            }
+            
+            /* Page breaks */
             tr { page-break-inside: avoid; }
-            .print-header {
-                display: block !important;
-                text-align: center;
-                margin-bottom: 20px;
-            }
-            .print-footer {
-                display: block !important;
-                text-align: center;
-                margin-top: 20px;
-                font-size: 12px;
-            }
+            thead { display: table-header-group; }
+            
+            /* Adjust column widths for print */
+            th:nth-child(1), td:nth-child(1) { width: 20%; }
+            th:nth-child(2), td:nth-child(2) { width: 35%; }
+            th:nth-child(3), td:nth-child(3) { width: 10%; }
+            th:nth-child(4), td:nth-child(4) { width: 20%; }
+            th:nth-child(5), td:nth-child(5) { width: 15%; }
         }
+        
         .print-header, .print-footer {
             display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .print-header h1 {
+            margin: 0;
+            color: #333;
+            font-size: 24pt;
+            text-align: center;
+            font-weight: bold;
+        }
+        .print-header h2 {
+            margin: 10px 0;
+            color: #333;
+            font-size: 18pt;
+            text-align: center;
+        }
+        .print-header p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 10pt;
+        }
+        .print-summary {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+        .print-summary p {
+            margin: 5px 0;
+            font-size: 11pt;
+            color: #333;
+        }
+        .admin-info {
+            margin-top: 20px;
+            text-align: left;
+            padding: 20px;
+        }
+        .admin-info p {
+            margin: 10px 0;
         }
     </style>
 </head>
 
 <body>
     <div class="print-header">
-        <h1>Medicine Inventory Report</h1>
+        <h1>PAPAN HEALTH CENTER</h1>
+        <h2>Medicine Inventory Report</h2>
         <p>Generated on <?= date('F d, Y h:i A') ?></p>
+        <div class="print-summary">
+            <?php
+            // Count medicines left
+            $medicinesLeft = $result->num_rows;
+            
+            // Count given medicines
+            $givenSql = "SELECT COUNT(*) as count FROM medicine_given WHERE archived = 0";
+            $givenResult = $conn->query($givenSql);
+            $givenCount = $givenResult->fetch_assoc()['count'];
+            
+            // Count expired medicines
+            $expiredSql = "SELECT COUNT(*) as count FROM medicines WHERE expiry_date < CURDATE() AND archived = 0";
+            $expiredResult = $conn->query($expiredSql);
+            $expiredCount = $expiredResult->fetch_assoc()['count'];
+            ?>
+            <p><strong>Medicines Left:</strong> <?= $medicinesLeft ?></p>
+            <p><strong>Given Medicines:</strong> <?= $givenCount ?></p>
+            <p><strong>Expired Medicines:</strong> <?= $expiredCount ?></p>
+        </div>
     </div>
 
     <div class="container box">
@@ -171,10 +261,11 @@ $result = $conn->query($sql);
                     <td><?= $row['medicine_name'] ?></td>
                     <td><?= $row['description'] ?></td>
                     <?php
+                    $unit = isset($row['unit']) ? $row['unit'] : 'pieces';
                     if ($row['stock'] <= 5) {
-                        echo "<td style='color: red; font-weight: bold; background: #ffe6e6;'>" . $row['stock'] . ' ⚠️</td>';
+                        echo "<td style='color: red; font-weight: bold; background: #ffe6e6;'>" . $row['stock'] . ' ' . $unit . ' ⚠️</td>';
                     } else {
-                        echo '<td>' . $row['stock'] . '</td>';
+                        echo '<td>' . $row['stock'] . ' ' . $unit . '</td>';
                     }
                     ?>
                     <?php
@@ -193,7 +284,7 @@ $result = $conn->query($sql);
                     <td><?= $row['date_added'] ?></td>
                     <td>
                         <button class="btn btn-edit"
-                            onclick="openEditModal(<?= $row['medicine_id'] ?>, '<?= $row['medicine_name'] ?>', '<?= $row['description'] ?>', <?= $row['stock'] ?>, '<?= $row['expiry_date'] ?>')">
+                            onclick="openEditModal(<?= $row['medicine_id'] ?>, '<?= $row['medicine_name'] ?>', '<?= $row['description'] ?>', <?= $row['stock'] ?>, '<?= $row['unit'] ?>', '<?= $row['expiry_date'] ?>')">
                             Edit
                         </button>
                         <a href="archive_medicine.php?id=<?= $row['medicine_id'] ?>"
@@ -218,6 +309,16 @@ $result = $conn->query($sql);
                 <input type="text" name="medicine_name" placeholder="Medicine Name" required>
                 <textarea name="description" placeholder="Description"></textarea>
                 <input type="number" name="stock" placeholder="Stock" required>
+                <label>Unit of Measurement:</label>
+                <select name="unit" required>
+                    <option value="pieces">Pieces</option>
+                    <option value="boxes">Boxes</option>
+                    <option value="bottles">Bottles</option>
+                    <option value="milligram">Milligram (mg)</option>
+                    <option value="gram">Gram (g)</option>
+                    <option value="milliliter">Milliliter (ml)</option>
+                    <option value="litre">Litre (L)</option>
+                </select>
                 <label>Expiry Date:</label>
                 <input type="date" name="expiry_date" required>
                 <button type="submit" class="btn btn-add">Save</button>
@@ -235,6 +336,16 @@ $result = $conn->query($sql);
                 <input type="text" name="medicine_name" id="edit_name" required>
                 <textarea name="description" id="edit_description"></textarea>
                 <input type="number" name="stock" id="edit_stock" required>
+                <label>Unit of Measurement:</label>
+                <select name="unit" id="edit_unit" required>
+                    <option value="pieces">Pieces</option>
+                    <option value="boxes">Boxes</option>
+                    <option value="bottles">Bottles</option>
+                    <option value="milligram">Milligram (mg)</option>
+                    <option value="gram">Gram (g)</option>
+                    <option value="milliliter">Milliliter (ml)</option>
+                    <option value="litre">Litre (L)</option>
+                </select>
                 <label>Expiry Date:</label>
                 <input type="date" name="expiry_date" id="edit_expiry" required>
                 <button type="submit" class="btn btn-edit">Update</button>
@@ -264,35 +375,60 @@ $result = $conn->query($sql);
 
     <script>
         function printMedicineList() {
-            // Add page numbers
+            // Add page numbers and styles
             const style = document.createElement('style');
             style.innerHTML = `
                 @media print {
-                    .print-footer { 
+                    .print-footer {
                         position: fixed;
                         bottom: 0;
                         width: 100%;
                         text-align: center;
+                        font-size: 9pt;
+                        color: #666;
                     }
                     .print-footer::after {
-                        counter-increment: page;
-                        content: counter(page);
+                        content: "Page " counter(page) " of " counter(pages);
                     }
-                    @page { 
-                        margin: 20mm;
+                    @page {
+                        margin: 15mm 10mm 15mm 10mm;
                         counter-increment: page;
-                        @bottom-right {
-                            content: counter(page);
+                        counter-reset: pages;
+                        @bottom-center {
+                            content: counter(page) " of " counter(pages);
                         }
+                    }
+                    /* Ensure table header repeats on each page */
+                    thead {
+                        display: table-header-group;
+                    }
+                    tfoot {
+                        display: table-footer-group;
                     }
                 }
             `;
             document.head.appendChild(style);
             
+            // Create footer with administrator info
+            const footer = document.createElement('div');
+            footer.className = 'print-footer';
+            footer.innerHTML = `
+                <p>Papan Health Center - Medicine Inventory Report</p>
+                <div class="admin-info">
+                    <p><strong>Administered by:</strong> <?php echo isset($_SESSION['full_name']) ? htmlspecialchars($_SESSION['full_name']) : '_____________________'; ?></p>
+                    <p><strong>Position:</strong> <?php echo isset($_SESSION['role']) ? htmlspecialchars(ucfirst($_SESSION['role'])) : '_____________________'; ?></p>
+                    <p><strong>Date:</strong> <?php echo date('F d, Y'); ?></p>
+                </div>
+            `;
+            document.body.appendChild(footer);
+            
             window.print();
             
-            // Clean up
-            setTimeout(() => document.head.removeChild(style), 1000);
+            // Cleanup
+            setTimeout(() => {
+                document.head.removeChild(style);
+                document.body.removeChild(footer);
+            }, 1000);
         }
 
         function openAddModal() {
@@ -303,11 +439,12 @@ $result = $conn->query($sql);
             document.getElementById('addModal').style.display = 'none';
         }
 
-        function openEditModal(id, name, description, stock, expiry) {
+        function openEditModal(id, name, description, stock, unit, expiry) {
             document.getElementById('edit_id').value = id;
             document.getElementById('edit_name').value = name;
             document.getElementById('edit_description').value = description;
             document.getElementById('edit_stock').value = stock;
+            document.getElementById('edit_unit').value = unit || 'pieces';
             document.getElementById('edit_expiry').value = expiry;
             document.getElementById('editModal').style.display = 'block';
         }
@@ -352,10 +489,14 @@ $result = $conn->query($sql);
         /* filters low stock */
 
         function filterLowStock() {
+            // Quantity is in the 3rd column (index 2)
             const rows = document.querySelectorAll('tbody tr');
             rows.forEach(row => {
-                const stockCell = row.cells[3];
-                const stockValue = parseInt(stockCell.textContent.replace(/[^0-9]/g, ''));
+                const stockCell = row.cells[2];
+                if (!stockCell) return;
+                // extract the first integer from the cell (handles units and emojis)
+                const m = stockCell.textContent.match(/-?\d+/);
+                const stockValue = m ? parseInt(m[0], 10) : 0;
                 if (stockValue > 5) {
                     row.style.display = 'none';
                 } else {
@@ -372,15 +513,31 @@ $result = $conn->query($sql);
         }
 
         function filterExpiring() {
+            // Expiry date is in the 4th column (index 3)
             const rows = document.querySelectorAll('tbody tr');
+            const today = new Date();
+            // Normalize today's date to midnight
+            today.setHours(0,0,0,0);
             rows.forEach(row => {
-                const expiryCell = row.cells[4];
-                const isExpiring = expiryCell.style.background === 'rgb(220, 53, 69)' || expiryCell.innerHTML
-                    .includes('🚨');
-                if (!isExpiring) {
+                const expiryCell = row.cells[3];
+                if (!expiryCell) return;
+                const text = expiryCell.textContent || '';
+                // Try to extract a YYYY-MM-DD date from the cell
+                const dateMatch = text.match(/(\d{4}-\d{2}-\d{2})/);
+                if (!dateMatch) {
+                    // no valid date -> hide
                     row.style.display = 'none';
-                } else {
+                    return;
+                }
+                const expDate = new Date(dateMatch[1] + 'T00:00:00');
+                expDate.setHours(0,0,0,0);
+                const diffMs = expDate - today;
+                const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+                // show if expires within 0..3 days
+                if (diffDays >= 0 && diffDays <= 3) {
                     row.style.display = '';
+                } else {
+                    row.style.display = 'none';
                 }
             });
         }
